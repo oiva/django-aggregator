@@ -48,6 +48,11 @@ class Feed(models.Model):
 
             content = content.encode(encoding, "xmlcharrefreplace")
 
+            image = ''
+            for entry_link in entry.links:
+                if 'image' in entry_link.type:
+                    image = entry_link.href
+
             if 'updated_parsed' in entry and entry.updated_parsed is not None:
                 date_modified = datetime.datetime(*entry.updated_parsed[:6])
             else:
@@ -57,7 +62,7 @@ class Feed(models.Model):
                 self.entries.get(guid=guid)
             except Entry.DoesNotExist:
                 self.entries.create(title=title, link=link, summary=content,
-                                    guid=guid, date=date_modified)
+                                    guid=guid, date=date_modified, image=image)
 
 
 class Entry(models.Model):
