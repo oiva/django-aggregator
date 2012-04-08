@@ -1,6 +1,7 @@
 import datetime
 import feedparser
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -22,11 +23,16 @@ class Feed(models.Model):
 
     def update(self):
         parsed = feedparser.parse(self.feed_url)
+        try:
+            encoding = settings.AGGREGATOR_ENCODING
+        except AttributeError:
+            encoding = parsed.encoding
+
         for entry in parsed.entries:
-            title = entry.title.encode(parsed.encoding, "xmlcharrefreplace")
-            guid = entry.get('id', entry.link).encode(parsed.encoding,
+            title = entry.title.encode(encoding, "xmlcharrefreplace")
+            guid = entry.get('id', entry.link).encode(encoding,
                                                       "xmlcharrefreplace")
-            link = entry.link.encode(parsed.encoding, "xmlcharrefreplace")
+            link = entry.link.encode(encoding, "xmlcharrefreplace")
 
             if not guid:
                 guid = link
@@ -40,7 +46,7 @@ class Feed(models.Model):
             else:
                 content = u''
 
-            content = content.encode(parsed.encoding, "xmlcharrefreplace")
+            content = content.encode(encoding, "xmlcharrefreplace")
 
             if 'updated_parsed' in entry and entry.updated_parsed is not None:
                 date_modified = datetime.datetime(*entry.updated_parsed[:6])
@@ -63,6 +69,7 @@ class Entry(models.Model):
     date = models.DateTimeField(_('Date'))
     guid = models.CharField(_('GUID'), max_length=500,
                             unique=True, db_index=True)
+    image = models.URLField(_('Image'), max_length=500)
 
     class Meta:
         ordering = ('-date',)
