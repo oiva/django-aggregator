@@ -70,11 +70,12 @@ class Entry(models.Model):
                              related_name='entries')
     title = models.CharField(_('Title'), max_length=500)
     link = models.URLField(_('Link'), max_length=500)
+    content = models.TextField(_('Content'))
     summary = models.TextField(_('Summary'), blank=True)
     date = models.DateTimeField(_('Date'))
     guid = models.CharField(_('GUID'), max_length=500,
                             unique=True, db_index=True)
-    image = models.URLField(_('Image'), max_length=500)
+    image = models.URLField(_('Image'), max_length=500, blank=True, null=True)
 
     class Meta:
         ordering = ('-date',)
