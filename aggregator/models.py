@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from bs4 import BeautifulSoup
+
 ua = 'Django-aggregator/dev +http://github.com/brutasse/django-aggregator'
 feedparser.USER_AGENT = ua
 
@@ -33,25 +35,32 @@ class Feed(models.Model):
             guid = entry.get('id', entry.link).encode(encoding,
                                                       "xmlcharrefreplace")
             link = entry.link.encode(encoding, "xmlcharrefreplace")
+            image = None
 
             if not guid:
                 guid = link
 
             if 'summary' in entry:
-                content = entry.summary
+                summary = entry.summary
             elif 'description' in entry:
-                content = entry.description
-            elif 'content' in entry:
+                summary = entry.description
+            else:
+                summary = u''
+
+            summary = summary.encode(encoding, "xmlcharrefreplace")
+
+            if 'content' in entry:
                 content = entry.content[0].value
             else:
                 content = u''
 
-            content = content.encode(encoding, "xmlcharrefreplace")
-
-            image = ''
             for entry_link in entry.links:
                 if 'image' in entry_link.type:
                     image = entry_link.href
+            if image is None:
+                image = self.parse_image(content)
+
+            content = content.encode(encoding, "xmlcharrefreplace")
 
             if 'updated_parsed' in entry and entry.updated_parsed is not None:
                 date_modified = datetime.datetime(*entry.updated_parsed[:6])
@@ -61,8 +70,36 @@ class Feed(models.Model):
             try:
                 self.entries.get(guid=guid)
             except Entry.DoesNotExist:
-                self.entries.create(title=title, link=link, summary=content,
-                                    guid=guid, date=date_modified, image=image)
+                self.entries.create(title=title, link=link, summary=summary,
+                content=content, guid=guid, date=date_modified, image=image)
+
+
+    def parse_image(self, content):
+        soup = BeautifulSoup(content)
+        img = soup.img
+        if img is None:
+            return None
+
+        if 'height' in img and 'width' in img:
+            height = int(img['height'])
+            width = int(img['width'])
+
+            if height < 100 or width < 100:
+                return None
+
+        image = img['src']
+
+        rejected_images = [
+            'wp-includes/images/smilies',
+            'flattr-badge',
+            "'+uri +'"
+        ]
+
+        for rejected in rejected_images:
+            if rejected in image:
+                return None
+
+        return image
 
 
 class Entry(models.Model):
