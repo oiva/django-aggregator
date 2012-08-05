@@ -68,10 +68,11 @@ class Feed(models.Model):
                 date_modified = datetime.datetime.utcnow()
 
             try:
-                self.entries.get(guid=guid)
+                entry = Entry.objects.get(guid=guid)
+                self.entries.add(entry)
             except Entry.DoesNotExist:
-                self.entries.create(title=title, link=link, summary=summary,
-                content=content, guid=guid, date=date_modified, image=image)
+                self.entries.create(title=title, link=link, summary=summary,\
+                    content=content, guid=guid, date=date_modified, image=image)
 
 
     def parse_image(self, content):
