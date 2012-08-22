@@ -55,7 +55,8 @@ class Feed(models.Model):
                 content = u''
 
             for entry_link in entry.links:
-                if 'type' in entry_link and 'image' in entry_link.type:
+                if 'type' in entry_link and 'image' in entry_link.type\
+                    and 'href' in entry_link:
                     image = entry_link.href
             if image is None:
                 image = self.parse_image(content)
