@@ -83,7 +83,7 @@ class Feed(models.Model):
                     self.entries.create(title=title, link=link, summary=summary,\
                         content=content, guid=guid, date=date_modified, image=image)
                 except DatabaseError:
-                    print u'fail: %s, %s, %s, %s' % (title, link, guid, image)
+                    print 'fail: %s, %s, %s, %s' % (title.encode('ascii', 'replace'), link.encode('ascii', 'replace'), guid.encode('ascii', 'replace'), image.encode('ascii', 'replace'))
 
 
     def parse_image(self, content):
