@@ -66,6 +66,10 @@ class Feed(models.Model):
             if image is None:
                 image = self.parse_image(content)
 
+            # catch if image is actually base64 encoded data
+            if image is not None and len(image) > 500:
+                image = None
+
             content = content.encode(encoding, "xmlcharrefreplace")
 
             if 'published_parsed' in entry and entry.published_parsed is not None:
@@ -82,8 +86,8 @@ class Feed(models.Model):
                 try:
                     self.entries.create(title=title, link=link, summary=summary,\
                         content=content, guid=guid, date=date_modified, image=image)
-                except DatabaseError:
-                    print 'fail: %s, %s, %s, %s' % (title.encode('ascii', 'replace'), link.encode('ascii', 'replace'), guid.encode('ascii', 'replace'), image.encode('ascii', 'replace'))
+                except DatabaseError, err:
+                    pass
 
 
     def parse_image(self, content):
