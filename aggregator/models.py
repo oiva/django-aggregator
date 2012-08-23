@@ -3,6 +3,7 @@ import feedparser
 
 from django.conf import settings
 from django.db import models
+from django.db.utils import DatabaseError
 from django.utils.translation import ugettext_lazy as _
 
 from bs4 import BeautifulSoup
@@ -12,9 +13,9 @@ feedparser.USER_AGENT = ua
 
 
 class Feed(models.Model):
-    title = models.CharField(_('Title'), max_length=500)
-    feed_url = models.URLField(_('Feed URL'), unique=True, max_length=500)
-    public_url = models.URLField(_('Public URL'), max_length=500)
+    title = models.CharField(_('Title'), max_length=1024)
+    feed_url = models.URLField(_('Feed URL'), unique=True, max_length=1024)
+    public_url = models.URLField(_('Public URL'), max_length=1024)
     is_defunct = models.BooleanField(_('Is defunct'))
 
     class Meta:
@@ -78,8 +79,11 @@ class Feed(models.Model):
                 entry = Entry.objects.get(guid=guid)
                 self.entries.add(entry)
             except Entry.DoesNotExist:
-                self.entries.create(title=title, link=link, summary=summary,\
-                    content=content, guid=guid, date=date_modified, image=image)
+                try:
+                    self.entries.create(title=title, link=link, summary=summary,\
+                        content=content, guid=guid, date=date_modified, image=image)
+                except DatabaseError:
+                    print 'fail: %s, %s, %s, %s' % (title, link, guid, image)
 
 
     def parse_image(self, content):
@@ -113,14 +117,14 @@ class Feed(models.Model):
 class Entry(models.Model):
     feed = models.ForeignKey(Feed, verbose_name=_('Feed'),
                              related_name='entries')
-    title = models.CharField(_('Title'), max_length=500)
-    link = models.URLField(_('Link'), max_length=500)
+    title = models.CharField(_('Title'), max_length=1024)
+    link = models.URLField(_('Link'), max_length=1024)
     content = models.TextField(_('Content'))
     summary = models.TextField(_('Summary'), blank=True)
     date = models.DateTimeField(_('Date'))
-    guid = models.CharField(_('GUID'), max_length=500,
+    guid = models.CharField(_('GUID'), max_length=1024,
                             unique=True, db_index=True)
-    image = models.URLField(_('Image'), max_length=500, blank=True, null=True)
+    image = models.URLField(_('Image'), max_length=1024, blank=True, null=True)
 
     class Meta:
         ordering = ('-date',)
