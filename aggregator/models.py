@@ -32,6 +32,10 @@ class Feed(models.Model):
 
         for entry in parsed.entries:
             title = entry.title.encode(encoding, "xmlcharrefreplace")
+
+            if len(title) > 500:
+                title = title[:500]
+
             guid = entry.get('id', entry.link).encode(encoding,
                                                       "xmlcharrefreplace")
             link = entry.link.encode(encoding, "xmlcharrefreplace")
