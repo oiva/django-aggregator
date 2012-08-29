@@ -103,6 +103,9 @@ class Feed(models.Model):
             if height < 100 or width < 100:
                 return None
 
+        if 'src' not in image:
+            return None
+
         image = img['src']
 
         rejected_images = [
