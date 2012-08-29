@@ -103,7 +103,7 @@ class Feed(models.Model):
             if height < 100 or width < 100:
                 return None
 
-        if 'src' not in image:
+        if 'src' not in img:
             return None
 
         image = img['src']
