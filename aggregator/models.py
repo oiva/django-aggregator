@@ -4,6 +4,7 @@ import feedparser
 from django.conf import settings
 from django.db import models
 from django.db.utils import DatabaseError
+from django.utils import encoding
 from django.utils.translation import ugettext_lazy as _
 
 from bs4 import BeautifulSoup
@@ -32,18 +33,31 @@ class Feed(models.Model):
             encoding = parsed.encoding
 
         for entry in parsed.entries:
-            title = entry.title.encode(encoding, "xmlcharrefreplace")
-
-            if len(title) > 500:
-                title = title[:500]
-
-            guid = entry.get('id', entry.link).encode(encoding,
-                                                      "xmlcharrefreplace")
-            link = entry.link.encode(encoding, "xmlcharrefreplace")
+            guid = None
+            link = None
+            title = None
             image = None
 
-            if not guid:
-                guid = link
+            if 'title' in entry:
+                title = entry.title.encode(encoding, "xmlcharrefreplace")
+
+            if title is not None and len(title) > 500:
+                title = title[:500]
+
+            if 'link' in entry:
+                guid = entry.get('id', entry.link).encode(encoding,
+                                                      "xmlcharrefreplace")
+                link = entry.link.encode(encoding, "xmlcharrefreplace")
+
+            if guid is None and title is not None:
+                #title_norm = re.sub(r'\s+', '', title)
+                title_norm = title.decode(encoding)
+                title_norm = title_norm.encode('ascii', 'ignore')
+                guid = self.feed_url + title_norm
+            if guid is None:
+                continue
+            if link is None:
+                link = ''
 
             if 'summary' in entry:
                 summary = entry.summary
@@ -59,10 +73,11 @@ class Feed(models.Model):
             else:
                 content = u''
 
-            for entry_link in entry.links:
-                if 'type' in entry_link and 'image' in entry_link.type\
-                    and 'href' in entry_link:
-                    image = entry_link.href
+            if 'links' in entry:
+                for entry_link in entry.links:
+                    if 'type' in entry_link and 'image' in entry_link.type\
+                        and 'href' in entry_link:
+                        image = entry_link.href
             if image is None:
                 image = self.parse_image(content)
 
@@ -88,6 +103,8 @@ class Feed(models.Model):
                         content=content, guid=guid, date=date_modified, image=image)
                 except DatabaseError, err:
                     pass
+            except DatabaseError, err:
+                pass
 
 
     def parse_image(self, content):
